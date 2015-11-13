@@ -6,6 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 
@@ -18,6 +20,10 @@ public class start {
 	
 	public static void main(String[] args) {
 		Properties config = readConfig("config.ini");
+		File dirName = mkdir(new File(config.getProperty("inputFolder")));
+		
+		runWorkers(Integer.parseInt(config.get("workersCount").toString()), dirName);
+
 	}
 
 	private static Properties readConfig(String filename){
@@ -37,4 +43,35 @@ public class start {
 		logger.info(props.get("inputFolder"));
 		return props;
 	}	
+
+	public static File mkdir(File dirName){
+		if(!dirName.exists()){
+			logger.warn("VW folder is not there : " + dirName.toString());
+			boolean result = false;
+			   try{
+			        dirName.mkdir();
+			        result = true;
+			    } 
+			    catch(SecurityException se){
+			        logger.fatal("Don't have permission to operate on VW folder");
+			        System.exit(2);
+			    }    
+			if(result){
+				logger.info("Folder successfully created.");
+			}
+		}
+		return dirName;
+	}
+
+	public static void runWorkers(int workerCount, File location)
+	{
+		List <VWDataCreator> workers = new ArrayList<>();
+		for(int i = 0; i < workerCount; i++){
+			workers.add(new VWDataCreator(String.format("Worker %d", i), i*250, location));
+		}
+		for(int i = 0; i < workerCount; i++){
+			workers.get(i).start();
+		}
+	}
+	
 }
